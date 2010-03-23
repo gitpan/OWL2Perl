@@ -13,7 +13,7 @@ use vars qw{$VERSION};
 
 BEGIN {
 	use vars qw{@ISA @EXPORT @EXPORT_OK};
-	$VERSION = 0.90;
+	$VERSION = 0.91;
 	*OWL2Perl::VERSION = *VERSION;
 }
 
@@ -24,6 +24,10 @@ __END__
 =head1 NAME
 
 OWL2Perl - Perl extension for the automatic generation of perl modules from OWL classes
+
+=head2 Getting Started
+
+Please read the file doc/working_with_datatypes.html to get a feel for how to use this module.
 
 =cut
 

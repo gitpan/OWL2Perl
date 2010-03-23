@@ -39,8 +39,9 @@ requires:
   PLUTO: 0.25
   Params::Util: 0.38
   RDF::Core: 0.51
+  Scalar::Util: 1.2
   Template: 2.22
   URI: 1.4
   Unicode::String: 2.09
   Want: 0.18
-version: 0.90
+version: 0.91

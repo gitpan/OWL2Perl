@@ -10,11 +10,18 @@ package OWL::Utils;
 use File::Spec;
 use LWP::UserAgent;
 use HTTP::Request;
+
+# use statements for serializing OWL class
+use RDF::Core::Storage::Memory;
+use RDF::Core::Model;
+use RDF::Core::Model::Serializer;
+use Scalar::Util 'blessed';
+
 use strict;
 
 # add versioning to this module
 use vars qw /$VERSION/;
-$VERSION = sprintf "%d.%02d", q$Revision: 1.2 $ =~ /: (\d+)\.(\d+)/;
+$VERSION = sprintf "%d.%02d", q$Revision: 1.3 $ =~ /: (\d+)\.(\d+)/;
 
 =head1 NAME
 
@@ -162,6 +169,35 @@ sub trim {
 	$text =~ s/^\s+//;
 	$text =~ s/\s+$//;
 	return $text;
+}
+
+sub serialize {
+	my ($rdf_list) = @_;
+	
+	# where we passed a list of items or a single item?
+	$rdf_list = [$rdf_list] if blessed $rdf_list && $rdf_list->isa('OWL::Data::OWL::Class');
+
+	# construct a model
+    my $model = new RDF::Core::Model( Storage => new RDF::Core::Storage::Memory );
+
+    # our xml string
+    my $xml = '';
+
+    # iterate over the list
+	foreach my $class (@$rdf_list) {
+		if (blessed $class && $class->isa('OWL::Data::OWL::Class')) {	
+			# add each statement
+			$model->addStmt($_) foreach ( @{ $class->_get_statements } );
+		}
+	}
+	
+	# print out the XML
+    my $serializer = new RDF::Core::Model::Serializer(
+        Model  => $model,
+        Output => \$xml,
+    );
+	$serializer->serialize;
+	return $xml;
 }
 
 1;

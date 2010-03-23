@@ -8,7 +8,7 @@
     
 	# Define metadata
 	name 'OWL2Perl';
-	version '0.90';
+	version '0.91';
 	license 'new BSD';
 	abstract
 'This distribution aids in the automatic generation of perl modules from owl ontologies.';
@@ -22,18 +22,19 @@
 	requires 'File::ShareDir'   	=> 1.00;
 	requires 'Config::Simple'       => 4.58;
 	requires 'Log::Log4perl'    	=> 1.12;
-	requires 'HTTP::Date'			=> 5.81;	
+	requires 'HTTP::Date'		=> 5.81;	
 	requires 'Template'         	=> 2.22;
 	requires 'Params::Util'     	=> 0.38;
+	requires 'Scalar::Util'         =>  1.20;
     requires 'Class::Inspector' 	=> 1.17;
     requires 'Unicode::String'  	=> 2.09;
     requires 'IO::String'       	=> 1.08;
-    requires 'RDF::Core'            => 0.51;
-    requires 'LS'                   => '1.1.7';
-    requires 'HTTP::Request'        => 0;
-    requires 'LWP'                  => 0;
-    requires 'PLUTO'                => 0.25;
-    requires 'URI'                  => 1.40;  
+    requires 'RDF::Core'                => 0.51;
+    requires 'LS'                       => '1.1.7';
+    requires 'HTTP::Request'            => 0;
+    requires 'LWP'                      => 0;
+    requires 'PLUTO'                    => 0.25;
+    requires 'URI'                      => 1.40;  
 
     # windows doesn't need this
 	if ( not MSWIN ) {

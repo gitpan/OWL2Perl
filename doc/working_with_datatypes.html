@@ -402,11 +402,6 @@ use ontology::dumontierlab::com::hasSymbol;
 use sadiframework::org::ontologies::predicates::hasDescription;
 use sadiframework::org::ontologies::predicates::hasProteinName;
 
-# use statements for serializing OWL class
-use RDF::Core::Storage::Memory;
-use RDF::Core::Model;
-use RDF::Core::Model::Serializer;
-
 # instantiate our OWL class
 my $class =
   sadiframework::org::examples::example::AnnotatedGeneID_Record-&gt;new(
@@ -435,18 +430,9 @@ $class-&gt;add_hasSymbol(
            new ontology::dumontierlab::com::hasSymbol(&#39;another symbol value&#39;) );
 
 # here we serialze the OWL class
-# construct a model
-my $model = new RDF::Core::Model( Storage =&gt; new RDF::Core::Storage::Memory );
+use OWL::Utils;
 
-# add each statement
-$model-&gt;addStmt($_) foreach ( @{ $class-&gt;_get_statements } );
-
-# print out the XML
-my $serializer = new RDF::Core::Model::Serializer(
-                                    Model  =&gt; $model,
-                                    Output =&gt; \*STDOUT,
-);
-$serializer-&gt;serialize;</pre>
+print OWL::Utils::serialize($class);</pre>
 <p>This produces the following RDF/XML:</p>
 <pre>&lt;rdf:RDF
   xmlns:a=&quot;http://sadiframework.org/ontologies/predicates.owl#&quot;

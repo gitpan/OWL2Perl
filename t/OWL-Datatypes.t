@@ -44,6 +44,7 @@ my @properties = qw/ontology::dumontierlab::com::hasSymbol
   purl::oclc::org::SADI::LSRN::KEGG_COMPOUND_Record
   sadiframework::org::ontologies::service_objects::hasCHEBIEntry
   sadiframework::org::ontologies::chebiservice::getCHEBIEntryFromKEGGCompound_Output
+  OWL::Utils
   /;
 use_ok($_) foreach (@properties);
 
