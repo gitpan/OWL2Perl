@@ -33,7 +33,6 @@ lib/OWL/Generators/GenOWL.pm
 lib/OWL/Generators/templates/owl-class.tt
 lib/OWL/Generators/templates/owl-datatype-property.tt
 lib/OWL/Generators/templates/owl-object-property.tt
-lib/OWL/RDF/.cvsignore
 lib/OWL/RDF/Predicates/DC_PROTEGE.pm
 lib/OWL/RDF/Predicates/OMG_LSID.pm
 lib/OWL/RDF/Predicates/OWL.pm

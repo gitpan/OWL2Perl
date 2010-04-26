@@ -52,17 +52,17 @@ sub check_odo {
 # -----------------------------------------------------------
 use strict;
 use warnings;
+
 use OWL::Base;
 use OWL::Utils;
-use OWL::Generators::GenOWL;
+use OWL2Perl;
+
 use ODO::Parser::XML;
 use ODO::Graph::Simple;
 use ODO::Ontology::OWL::Lite;
 use ODO::Graph::Simple;
 use ODO::Node;
-use OWL::Data::Def::ObjectProperty;
-use OWL::Data::Def::DatatypeProperty;
-use OWL::Data::Def::OWLClass;
+
 use Data::Dumper;
 $LOG->level('INFO')  if $opt_v;
 $LOG->level('DEBUG') if $opt_d;
@@ -133,13 +133,15 @@ if (@ARGV) {
 										 schema_graph => $GRAPH_schema,
 										 schemaName   => '',
 										 verbose      => $opt_v
-		  );
+		);
+		# instantiate OWL2Perl object, set force, outdir, SCHEMA then call generate_datatypes
+		my $owl2perl = OWL2Perl->new(force=>(defined $opt_F ? 1 : 0), outdir=>$opt_o); 
 		if ($opt_s) {
 			my $code = '';
-			&generate_datatypes( $SCHEMA, \$code );
+			$owl2perl->generate_datatypes( $SCHEMA, \$code );
 			print STDOUT $code;
 		} else {
-			&generate_datatypes($SCHEMA);
+			$owl2perl->generate_datatypes($SCHEMA);
 		}
 	}
 }
@@ -163,276 +165,5 @@ sub process_import {
 	}
 }
 
-sub generate_datatypes {
-	my ( $lite, $code ) = @_;
-
-	# process the object properties
-	say ("\tProcessing object properties") if $opt_v;
-	my $oProps = &_process_object_properties( $lite, $code );
-
-	# process the datatype properties
-	say ("\tProcessing datatype properties") if $opt_v;
-	my $dProps = &_process_datatype_properties( $lite, $code );
-
-	# process the owl classes
-	say ("\tProcessing owl classes") if $opt_v;
-	&_process_classes( $lite, $oProps, $dProps, $code );
-}
-
-sub _process_object_properties {
-	my ( $lite, $code ) = @_;
-	my %objectProperties = %{ $lite->objectPropertyMap };
-	my %oProperties;
-	foreach my $key ( keys %objectProperties ) {
-		my $object = $objectProperties{$key};
-		next
-		  unless defined $object->{'object'}
-			  and UNIVERSAL::isa( $object->{'object'}, 'ODO::Node::Resource' );
-		my $property = new OWL::Data::Def::ObjectProperty;
-
-		# set the uri / uri sets the name too
-		$property->uri($key);
-		if ( defined $object->{'domain'} and @{ $object->{'domain'} } > 0 ) {
-			my $range = shift @{ $object->{'domain'} };
-			$property->domain($range);
-		}
-		if ( defined $object->{'range'} and @{ $object->{'range'} } ) {
-			my $range = shift @{ $object->{'range'} };
-			$property->range($range);
-		}
-		if ( defined $object->{'inheritance'}
-			 and @{ $object->{'inheritance'} } > 0 )
-		{
-			my $parent = $object->{'inheritance'}->[0] || '';
-			if ( UNIVERSAL::isa( $parent, 'ODO::Node::Resource' ) ) {
-				$parent = $parent->value;
-			}
-			$parent = 'OWL::Data::OWL::ObjectProperty'
-			  if $parent eq
-				  'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property';
-			$property->parent($parent);
-		}
-		my $generator = OWL::Generators::GenOWL->new();
-		if ( defined $code ) {
-			$generator->generate_object_property(
-												  property   => $property,
-												  outcode    => $code,
-												  force_over => $opt_F,
-			);
-		} else {
-			$generator->generate_object_property( property   => $property,
-												  force_over => $opt_F,
-												  impl_outdir => $opt_o ) if $opt_o;
-            $generator->generate_object_property( property   => $property,
-                                                  force_over => $opt_F,)unless $opt_o;
-		}
-		$oProperties{$key} = $property;
-	}
-	return \%oProperties;
-}
-
-sub _process_datatype_properties {
-	my ( $lite, $code ) = @_;
-	my %objectProperties = %{ $lite->datatypePropertyMap };
-	my %dProperties;
-	foreach my $key ( keys %objectProperties ) {
-		my $object = $objectProperties{$key};
-		next
-		  unless defined $object->{'object'}
-			  and UNIVERSAL::isa( $object->{'object'}, 'ODO::Node::Resource' );
-		my $property = new OWL::Data::Def::DatatypeProperty;
-
-		# set the uri / uri sets the name automatically
-		$property->uri($key);
-		if ( defined $object->{'domain'} and @{ $object->{'domain'} } > 0 ) {
-			my $range = shift @{ $object->{'domain'} };
-			$property->domain($range);
-		}
-		if ( defined $object->{'range'} and @{ $object->{'range'} } ) {
-			my $range = shift @{ $object->{'range'} };
-			$property->range($range);
-		}
-		if ( defined $object->{'inheritance'}
-			 and @{ $object->{'inheritance'} } > 0 )
-		{
-			my $parent = $object->{'inheritance'}->[0] || '';
-			if ( UNIVERSAL::isa( $parent, 'ODO::Node::Resource' ) ) {
-				$parent = $parent->value;
-			}
-			$parent = 'OWL::Data::OWL::DatatypeProperty'
-			  if $parent eq
-				  'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property';
-			$property->parent($parent);
-		}
-		my $generator = OWL::Generators::GenOWL->new();
-		if ( defined $code ) {
-			$generator->generate_datatype_property(
-													property   => $property,
-													outcode    => $code,
-													force_over => $opt_F,
-			);
-		} else {
-			$generator->generate_datatype_property( property   => $property,
-													force_over => $opt_F,
-													impl_outdir => $opt_o ) if $opt_o;
-            $generator->generate_datatype_property( property   => $property,
-                                                    force_over => $opt_F, ) unless $opt_o;
-		}
-		$dProperties{$key} = $property;
-	}
-	return \%dProperties;
-}
-
-sub _process_classes {
-	my ( $lite, $oProps, $dProps, $code ) = @_;
-
-	# oProps and dProps are hash refs ...
-	my %classes = %{ $lite->classMap };
-	my %dProperties;
-	foreach my $key ( keys %classes ) {
-		my $object = $classes{$key};
-
-		# we only process ODO Nodes
-		next
-		  unless defined $object->{'object'}
-			  and UNIVERSAL::isa( $object->{'object'}, 'ODO::Node::Resource' );
-		my $class = new OWL::Data::Def::OWLClass;
-
-		# set the uri / this also sets the name
-		$class->type($key);
-
-		# process inheritance
-		if ( defined $object->{'inheritance'}
-			 and @{ $object->{'inheritance'} } > 0 )
-		{
-			foreach my $parent ( @{ $object->{'inheritance'} } ) {
-				$class->add_parent($parent);
-			}
-		}
-
-		# process equivalent classes - either string or ODO::EquivalentClass
-		if ( defined $object->{'equivalent'}
-			 and @{ $object->{'equivalent'} } > 0 )
-		{
-			foreach my $equivalent ( @{ $object->{'equivalent'} } ) {
-				if (
-					 UNIVERSAL::isa(
-						  $equivalent,
-						  'ODO::Ontology::OWL::Lite::Fragments::EquivalentClass'
-					 )
-				  )
-				{
-
-					#   perl object
-					my $key = $equivalent->{'restrictionURI'};
-					if (     defined $classes{$key}
-						 and defined $classes{$key}->{'object'} )
-					{
-
-						# add to parents ... this $key will be auto generated
-						$class->add_parent($key);
-					} else {
-
-						# suck in the restrictions
-						if ( $dProps->{ $equivalent->{'onProperty'} } ) {
-							my $dp = $dProps->{ $equivalent->{'onProperty'} };
-							$class->add_datatype_properties($dp);
-						} else {
-							my $op = $oProps->{ $equivalent->{'onProperty'} };
-							$class->add_object_properties($op);
-						}
-					}
-				} else {
-
-					# string
-					my $key = $equivalent;
-					if (     defined $classes{$key}
-						 and defined $classes{$key}->{'object'} )
-					{
-
-						# add to parents ... this $key will be auto generated
-						$class->add_parent($key);
-					} else {
-
-						# TODO FIX suck in the restrictions
-						print STDERR "equivalent(else->else):->$key\n";
-						foreach my $restrict ( @{ $object->{'restrictions'} } )
-						{
-							if ( $dProps->{ $restrict->{'onProperty'} } ) {
-								my $dp = $dProps->{ $restrict->{'onProperty'} };
-								$class->add_datatype_properties($dp);
-							} else {
-								my $op = $oProps->{ $restrict->{'onProperty'} };
-								$class->add_object_properties($op);
-							}
-						}
-					}
-				}
-			}
-		}
-
-# TODO process intersections - read in the equivalent classes and suck out their attributes ... put them on this class
-		if ( defined $object->{'intersections'}
-			 and @{ $object->{'intersections'}->{'classes'} } > 0
-			 or @{ $object->{'intersections'}->{'restrictions'} } > 0 )
-		{
-			foreach
-			  my $restrict ( @{ $object->{'intersections'}->{'restrictions'} } )
-			{
-				if ( $dProps->{ $restrict->{'onProperty'} } ) {
-					my $dp = $dProps->{ $restrict->{'onProperty'} };
-
-					# TODO add someValuesFrom, allValuesFrom to inheritance
-					$class->add_datatype_properties($dp);
-				} else {
-					my $op = $oProps->{ $restrict->{'onProperty'} };
-					$class->add_object_properties($op);
-				}
-			}
-			foreach my $iClass ( @{ $object->{'intersections'}->{'classes'} } )
-			{
-				$class->add_parent($iClass);
-			}
-		}
-
-		# TODO process the restriction
-		if ( defined $object->{'restrictions'}
-			 and @{ $object->{'restrictions'} } )
-		{
-			foreach my $restrict ( @{ $object->{'restrictions'} } ) {
-				next unless defined $restrict->{'onProperty'};
-				if ( $dProps->{ $restrict->{'onProperty'} } ) {
-					my $dp = $dProps->{ $restrict->{'onProperty'} };
-					$class->add_datatype_properties($dp);
-				} elsif ( $oProps->{ $restrict->{'onProperty'} } ) {
-					my $op = $oProps->{ $restrict->{'onProperty'} };
-					$class->add_object_properties($op);
-				} elsif ( $oProps->{ $restrict->{'restrictionURI'} } ) {
-
-					# FIXME hack ...
-					my $op = $oProps->{ $restrict->{'restrictionURI'} };
-					$class->add_parent($op)
-					  if defined $classes{ $restrict->{'restrictionURI'} };
-				}
-			}
-		}
-
-		#print Dumper($class) ;
-		my $generator = OWL::Generators::GenOWL->new();
-		if ( defined $code ) {
-			$generator->generate_class(
-										class      => $class,
-										outcode    => $code,
-										force_over => $opt_F,
-			);
-		} else {
-			$generator->generate_class( class      => $class,
-										force_over => $opt_F,
-										impl_outdir => $opt_o ) if $opt_o;
-            $generator->generate_class( class      => $class,
-                                        force_over => $opt_F, ) unless $opt_o;
-		}
-	}
-}
 say 'Done.';
 __END__
