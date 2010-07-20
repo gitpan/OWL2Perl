@@ -33,7 +33,7 @@ BEGIN {
 	@ISA      = qw( Exporter );
 	@EXPORT   = qw( $LOG );
 	$VERSION  = sprintf "%d.%02d", q$Revision: 1.28 $ =~ /: (\d+)\.(\d+)/;
-	$Revision = '$Id: Base.pm,v 1.28 2010-02-11 00:02:51 ubuntu Exp $';
+	$Revision = '$Id: Base.pm,v 1.29 2010-02-11 00:02:51 ubuntu Exp $';
 
 	# initiate error handling
 	require Carp;
@@ -212,22 +212,39 @@ sub uri2package {
 
 	# the thing after the # if it exists
 	my $frag = $u1->fragment || '';
-	$frag =~ s/^\/*//g;
-	
+
+    # remove any leading / or #
+	$frag =~ s/^[\/#]*//g;
+	# remove any trailing
+	$frag =~ s/[\/#]*$//g;
+
 	# convert . to _
 	$frag =~ s/\./_/g if $frag;
+
+	# remove from frag ~ 
+    $frag =~ s/~//g;
 
 	# the path
 	my $path = $u1->path || '';
 
 	# remove leading /
 	$path =~ s/^\///g;
-	
-	# sub fragment with : to _ 
+
+	# remove any trailing / or #
+	$path =~ s/[\/|#]*$//g;
+
+	# sub path with : to _ 
 	$path =~ s/:/_/g;
+
+    # remove from path ~ 
+    $path =~ s/~//g;
+
+    # replace any // with a single /; doesnt affect // in http://
+	$path =~ s/\/\//\//g;
 
 	# convert / and . to ::
 	$path =~ s/\/|\./::/g;
+
 	my $package = '';
 
 	# package name assuming that uri#foo
@@ -429,6 +446,24 @@ sub _wrong_type_msg {
 }
 
 #-----------------------------------------------------------------
+# Set methods test whether incoming value exceeds the cardinality
+# constraints for the OWL Class.
+# Here we return message explaining that it has exceeded.
+#-----------------------------------------------------------------
+sub _bad_cardinality_msg {
+    my ( $self, $expected_size, $method ) = @_;
+    my $msg = 'In method ';
+    if ( defined $method ) {
+        $msg .= $method;
+    } else {
+        $msg .= ( caller(1) )[3];
+    }
+    return (
+"$msg: Trying to add property but we have exceeded cardinality constraints of '$expected_size'."
+    );
+}
+
+#-----------------------------------------------------------------
 # Deal with 'set', 'get' and 'add_' methods.
 #-----------------------------------------------------------------
 sub AUTOLOAD {
@@ -458,6 +493,7 @@ sub AUTOLOAD {
 				}
 				$this->_setter( $attr_name, $attr_type, \@result );
 			} else {
+				# no need to check cardinality contraints here ... sets one value here ...
 				$this->_setter(
 								$attr_name,
 								$attr_type,
@@ -486,6 +522,7 @@ sub AUTOLOAD {
 								   ref( $values[0] ) eq 'ARRAY'
 								   ? @{ $values[0] }
 								   : @values );
+					# TODO check if we have cardinality constraints ( size of @results + size of existing values)
 					foreach my $value (@result) {
 						$value =
 						  $this->check_type( $AUTOLOAD, $attr_type, $value );

@@ -26,7 +26,7 @@ requires:
   Class::Inspector: 1.17
   Config::Simple: 4.58
   File::HomeDir: 0.65
-  File::Path: 0
+  File::Path: 2.08
   File::ShareDir: 1
   File::Spec: 0.8
   HTTP::Date: 5.81
@@ -36,7 +36,7 @@ requires:
   LS: 1.1.7
   LWP: 0
   Log::Log4perl: 1.12
-  PLUTO: 0.26
+  PLUTO: 0.27
   Params::Util: 0.38
   RDF::Core: 0.51
   Scalar::Util: 1.2
@@ -44,4 +44,4 @@ requires:
   URI: 1.4
   Unicode::String: 2.09
   Want: 0.18
-version: 0.95
+version: 0.96

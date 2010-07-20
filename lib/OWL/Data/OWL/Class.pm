@@ -15,7 +15,7 @@ use RDF::Core::Statement;
 
 # add versioning to this module
 use vars qw /$VERSION/;
-$VERSION = sprintf "%d.%02d", q$Revision: 1.11 $ =~ /: (\d+)\.(\d+)/;
+$VERSION = sprintf "%d.%02d", q$Revision: 1.12 $ =~ /: (\d+)\.(\d+)/;
 
 =head1 NAME
 
@@ -140,6 +140,7 @@ sub init {
 # get all RDF::Core::Statements for this thing (array_ref)
 #-------------------------------------------------------------------
 sub _get_statements {
+	#return [];
 }
 1;
 __END__

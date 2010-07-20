@@ -17,13 +17,14 @@ END {
 
 	# destroy persistent data here
 	# delete outdir and its contents ...
-	use File::Path;
+	use File::Path qw(remove_tree);
 	diag("\nremoving generated modules from $outdir ...");
-	rmtree($outdir);
+	remove_tree($outdir, {keep_root => 0});
 	diag("done.");
 }
 #########################
 use_ok('OWL::Utils');
+use_ok('OWL::Base');
 use_ok('OWL::RDF::Predicates::DC_PROTEGE');
 use_ok('OWL::RDF::Predicates::OMG_LSID');
 use_ok('OWL::RDF::Predicates::OWL');
@@ -36,6 +37,8 @@ use_ok('OWL::Data::OWL::Class');
 use_ok('OWL::Data::OWL::DatatypeProperty');
 use_ok('OWL::Data::OWL::ObjectProperty');
 use_ok('OWL2Perl');
+
+use base qw( OWL::Base );
 
 # construct a default owl2perl object and check its default parameters
 diag("setting default outdir() to be $outdir");

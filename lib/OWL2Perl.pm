@@ -13,7 +13,7 @@ use vars qw{$VERSION};
 
 BEGIN {
 	use vars qw{@ISA @EXPORT @EXPORT_OK};
-	$VERSION           = 0.94;
+	$VERSION           = 0.96;
 	*OWL2Perl::VERSION = *VERSION;
 }
 
@@ -315,13 +315,57 @@ sub _process_classes {
 			foreach
 			  my $restrict ( @{ $object->{'intersections'}->{'restrictions'} } )
 			{
+				# TODO check if $restrict->{'hasValue'} ? add the hasValue to class : process restriction
+                if (defined $restrict->{'hasValue'}) {
+                    # add hasValue: extract the value, 
+                    my $o = OWL::Utils->trim($restrict->{'hasValue'});
+                    my $p = $restrict->{'onProperty'};
+                    my $range = $restrict->{'range'};
+                    my %hv_hash;
+                    $hv_hash{object} = $o;
+                    $hv_hash{range} = $range;
+                    $hv_hash{name} = $restrict->{'propertyName'};
+                    if ( $dProps->{ $restrict->{'onProperty'} } ) {
+                    	$hv_hash{module} = $self->oProperty2module( $self->uri2package( $p ) );
+                    } else {
+	                    $hv_hash{module} = $self->oProperty2module( $self->uri2package( $range ) ) if $range;
+	                    $hv_hash{module} = 'OWL::Data::OWL::Class' unless $range;	
+                    }
+                                        
+                    $class->add_has_value_property(\%hv_hash);
+                    # no next, because we use the has_value stuff to init our stuff
+                }
 				if ( $dProps->{ $restrict->{'onProperty'} } ) {
 					my $dp = $dProps->{ $restrict->{'onProperty'} };
+					# extract any cardinality constraints
+					if ( defined $restrict->{'minCardinality'} or defined $restrict->{'maxCardinality'}) {
+						my $min = $restrict->{'minCardinality'} || '0';
+						my $max = $restrict->{'maxCardinality'} || undef;
+						my $hash;
+						$hash->{min} = $min if defined $min;
+						$hash->{max} = $max if defined $max;
+						$hash->{name} = $restrict->{'propertyName'};
+						my $hoh = $class->cardinality_constraints();
+						$hoh->{$restrict->{'propertyName'}} = $hash;
+						$class->cardinality_constraints($hoh);
+					}
 
 					# TODO add someValuesFrom, allValuesFrom to inheritance
 					$class->add_datatype_properties($dp);
 				} else {
 					my $op = $oProps->{ $restrict->{'onProperty'} };
+					# extract any cardinality constraints
+					if (defined $restrict->{'minCardinality'} or defined $restrict->{'maxCardinality'}) {
+                        my $min = $restrict->{'minCardinality'} || '0';
+                        my $max =$restrict->{'maxCardinality'} || undef;
+                        my $hash;
+                        $hash->{min} = $min if defined $min;
+                        $hash->{max} = $max if defined $max;
+                        $hash->{name} = $restrict->{'propertyName'};
+                        my $hoh = $class->cardinality_constraints();
+                        $hoh->{$restrict->{'propertyName'}} = $hash;
+                        $class->cardinality_constraints($hoh);
+                    }
 					$class->add_object_properties($op);
 				}
 			}
@@ -337,11 +381,56 @@ sub _process_classes {
 		{
 			foreach my $restrict ( @{ $object->{'restrictions'} } ) {
 				next unless defined $restrict->{'onProperty'};
+				
+				# TODO check if $restrict->{'hasValue'} ? add the hasValue to class : process restriction
+				if (defined $restrict->{'hasValue'}) {
+					# add hasValue: extract the value, 
+                    my $o = OWL::Utils->trim($restrict->{'hasValue'});
+                    my $p = $restrict->{'onProperty'};
+                    my $range = $restrict->{'range'};
+                    my %hv_hash;
+                    $hv_hash{object} = $o;
+                    $hv_hash{range} = $range;
+                    $hv_hash{name} = $restrict->{'propertyName'};
+                    if ( $dProps->{ $restrict->{'onProperty'} } ) {
+                        $hv_hash{module} = $self->oProperty2module( $self->uri2package( $p ) );
+                    } else {
+                        $hv_hash{module} = $self->oProperty2module( $self->uri2package( $range ) ) if $range;
+                        $hv_hash{module} = 'OWL::Data::OWL::Class' unless $range;   
+                    }
+                                        
+                    $class->add_has_value_property(\%hv_hash);
+                    # no next, because we use the has_value stuff to init our stuff
+				}
 				if ( $dProps->{ $restrict->{'onProperty'} } ) {
 					my $dp = $dProps->{ $restrict->{'onProperty'} };
+					# extract any cardinality constraints
+                    if ( defined $restrict->{'minCardinality'} or defined $restrict->{'maxCardinality'}) {
+                        my $min = $restrict->{'minCardinality'} || '0';
+                        my $max = $restrict->{'maxCardinality'} || undef;
+                        my $hash;
+                        $hash->{min} = $min if defined $min;
+                        $hash->{max} = $max if defined $max;
+                        $hash->{name} = $restrict->{'propertyName'};
+                        my $hoh = $class->cardinality_constraints();
+                        $hoh->{$restrict->{'propertyName'}} = $hash;
+                        $class->cardinality_constraints($hoh);
+                    }
 					$class->add_datatype_properties($dp);
 				} elsif ( $oProps->{ $restrict->{'onProperty'} } ) {
 					my $op = $oProps->{ $restrict->{'onProperty'} };
+					# extract any cardinality constraints
+                    if (defined $restrict->{'minCardinality'} or defined $restrict->{'maxCardinality'}) {
+                        my $min = $restrict->{'minCardinality'} || '0';
+                        my $max = $restrict->{'maxCardinality'} || undef;
+                        my $hash;
+                        $hash->{min} = $min if defined $min;
+                        $hash->{max} = $max if defined $max;
+                        $hash->{name} = $restrict->{'propertyName'};
+                        my $hoh = $class->cardinality_constraints();
+                        $hoh->{$restrict->{'propertyName'}} = $hash;
+                        $class->cardinality_constraints($hoh);
+                    }
 					$class->add_object_properties($op);
 				} elsif ( $oProps->{ $restrict->{'restrictionURI'} } ) {
 
@@ -516,6 +605,19 @@ OWL2Perl - Perl extension for the automatic generation of perl modules from OWL 
 
 A module to aid in the genesis of Perl modules that represent OWL entities in
 OWL ontologies.
+
+=head2 Upgrading from a version prior to Version 0.96
+
+For those of you upgrading from a version prior to version 0.96, you may need to 
+regenerate your modules for any OWL ontologies that you use. 
+
+Not every one will need to regenerate their source code. Only those of you that
+use owl:hasValue and owl:maxCardinality property restrictions. Even if you use
+these constructs, you dont have to regenerate your source code unless you want
+OWL2Perl to catch those instances where you may provide I<too many> property 
+restrictions or where you don't explicitly provide the I<hasValue> restriction.
+
+=cut
 
 =head2 OWL2Perl Installation
 
